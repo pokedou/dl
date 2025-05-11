@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>画像ギャラリー</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 10px;
+      background-color: #f8f8f8;
+    }
+    h1 {
+      text-align: center;
+      font-size: 1.8em;
+      margin-bottom: 20px;
+    }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    .controls input[type="file"] {
+      padding: 8px;
+      font-size: 1em;
+    }
+    .controls button {
+      padding: 10px 14px;
+      font-size: 1em;
+      border: none;
+      border-radius: 6px;
+      background-color: #007bff;
+      color: white;
+      cursor: pointer;
+    }
+    .controls button:hover {
+      background-color: #0056b3;
+    }
+    .gallery {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 12px;
+    }
+    .image-container {
+      position: relative;
+      width: 45%;
+      max-width: 150px;
+    }
+    .image-container img {
+      width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+    }
+    .image-container input[type="checkbox"] {
+      position: absolute;
+      top: 5px;
+      left: 5px;
+      transform: scale(1.4);
+      background: white;
+    }
+    @media (max-width: 480px) {
+      .image-container {
+        width: 80%;
+      }
+      h1 {
+        font-size: 1.5em;
+      }
+      .controls {
+        flex-direction: column;
+        align-items: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>画像ギャラリー</h1>
+  <div class="controls">
+    <input type="file" id="upload" multiple accept="image/*">
+    <button onclick="saveSelected()">選択画像を保存</button>
+    <button onclick="saveAll()">すべて保存</button>
+    <button onclick="deleteSelected()">選択画像を削除</button>
+  </div>
+  <div class="gallery" id="gallery"></div>
+
+  <script>
+    const gallery = document.getElementById('gallery');
+    let uploadedImages = [];
+
+    function renderImages() {
+      gallery.innerHTML = '';
+      uploadedImages.forEach(({ name, dataUrl }) => {
+        const div = document.createElement('div');
+        div.className = 'image-container';
+        div.innerHTML = \`
+          <input type="checkbox" value="\${name}">
+          <img src="\${dataUrl}" alt="\${name}">
+        \`;
+        gallery.appendChild(div);
+      });
+    }
+
+    function addImage(name, dataUrl) {
+      uploadedImages.push({ name, dataUrl });
+      localStorage.setItem('uploadedImages', JSON.stringify(uploadedImages));
+      renderImages();
+    }
+
+    function loadImages() {
+      const stored = localStorage.getItem('uploadedImages');
+      if (stored) {
+        uploadedImages = JSON.parse(stored);
+        renderImages();
+      }
+    }
+
+    function saveSelected() {
+      document.querySelectorAll('input[type="checkbox"]:checked').forEach(cb => {
+        const img = uploadedImages.find(i => i.name === cb.value);
+        if (img) downloadImage(img.dataUrl, img.name);
+      });
+    }
+
+    function saveAll() {
+      uploadedImages.forEach(img => downloadImage(img.dataUrl, img.name));
+    }
+
+    function deleteSelected() {
+      const selectedNames = Array.from(document.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+      uploadedImages = uploadedImages.filter(img => !selectedNames.includes(img.name));
+      localStorage.setItem('uploadedImages', JSON.stringify(uploadedImages));
+      renderImages();
+    }
+
+    function downloadImage(dataUrl, filename) {
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    document.getElementById('upload').addEventListener('change', e => {
+      const files = e.target.files;
+      Array.from(files).forEach(file => {
+        const reader = new FileReader();
+        reader.onload = ev => addImage(file.name, ev.target.result);
+        reader.readAsDataURL(file);
+      });
+    });
+
+    window.onload = loadImages;
+  </script>
+</body>
+</html>
